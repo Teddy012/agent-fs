@@ -20,7 +20,7 @@ type ReadResult struct {
 	Content   string `json:"content"`
 	LineCount int    `json:"line_count"`
 	ByteCount int    `json:"byte_count"`
-	Truncated bool   `json:"truncated"` // True if content was sliced
+	Truncated bool   `json:"truncated"`  // True if content was sliced
 	SliceType string `json:"slice_type"` // "head", "tail", "bytes", or "full"
 }
 

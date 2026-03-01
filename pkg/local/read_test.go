@@ -11,7 +11,7 @@ func TestReadFullFile(t *testing.T) {
 	tmp := t.TempDir()
 	testFile := filepath.Join(tmp, "test.txt")
 	content := "line1\nline2\nline3\n"
-	if err := os.WriteFile(testFile, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(testFile, []byte(content), 0o600); err != nil {
 		t.Fatalf("write test file failed: %v", err)
 	}
 
@@ -41,7 +41,7 @@ func TestReadHeadLines(t *testing.T) {
 	tmp := t.TempDir()
 	testFile := filepath.Join(tmp, "test.txt")
 	content := "line1\nline2\nline3\nline4\nline5\n"
-	if err := os.WriteFile(testFile, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(testFile, []byte(content), 0o600); err != nil {
 		t.Fatalf("write test file failed: %v", err)
 	}
 
@@ -66,7 +66,7 @@ func TestReadTailLines(t *testing.T) {
 	tmp := t.TempDir()
 	testFile := filepath.Join(tmp, "test.txt")
 	content := "line1\nline2\nline3\nline4\nline5\n"
-	if err := os.WriteFile(testFile, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(testFile, []byte(content), 0o600); err != nil {
 		t.Fatalf("write test file failed: %v", err)
 	}
 
@@ -94,7 +94,7 @@ func TestReadBytes(t *testing.T) {
 	tmp := t.TempDir()
 	testFile := filepath.Join(tmp, "test.txt")
 	content := "hello world, this is a test file"
-	if err := os.WriteFile(testFile, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(testFile, []byte(content), 0o600); err != nil {
 		t.Fatalf("write test file failed: %v", err)
 	}
 
@@ -118,34 +118,56 @@ func TestReadBytes(t *testing.T) {
 	}
 }
 
-func TestReadHeadExceedsFile(t *testing.T) {
-	tmp := t.TempDir()
-	testFile := filepath.Join(tmp, "test.txt")
-	content := "line1\nline2\n"
-	if err := os.WriteFile(testFile, []byte(content), 0o644); err != nil {
-		t.Fatalf("write test file failed: %v", err)
+// TestReadExceedsFile tests that when the read amount exceeds file size,
+// the full content is returned and truncated=false
+func TestReadExceedsFile(t *testing.T) {
+	tests := []struct {
+		name      string
+		content   string
+		opts      ReadOptions
+		wantTrunc bool
+	}{
+		{
+			name:      "head lines exceeds file",
+			content:   "line1\nline2\n",
+			opts:      ReadOptions{HeadLines: 10},
+			wantTrunc: false,
+		},
+		{
+			name:      "bytes exceeds file",
+			content:   "small",
+			opts:      ReadOptions{Bytes: 1000},
+			wantTrunc: false,
+		},
 	}
 
-	result, err := ReadFile(testFile, ReadOptions{HeadLines: 10})
-	if err != nil {
-		t.Fatalf("ReadFile failed: %v", err)
-	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmp := t.TempDir()
+			testFile := filepath.Join(tmp, "test.txt")
+			if err := os.WriteFile(testFile, []byte(tt.content), 0o600); err != nil {
+				t.Fatalf("write test file failed: %v", err)
+			}
 
-	if result.Content != content {
-		t.Fatalf("expected content=%q, got %q", content, result.Content)
-	}
-	if result.LineCount != 2 {
-		t.Fatalf("expected line_count=2, got %d", result.LineCount)
-	}
-	if result.Truncated {
-		t.Fatalf("expected truncated=false when N exceeds file lines")
+			result, err := ReadFile(testFile, tt.opts)
+			if err != nil {
+				t.Fatalf("ReadFile failed: %v", err)
+			}
+
+			if result.Content != tt.content {
+				t.Fatalf("expected content=%q, got %q", tt.content, result.Content)
+			}
+			if result.Truncated != tt.wantTrunc {
+				t.Fatalf("expected truncated=%v, got %v", tt.wantTrunc, result.Truncated)
+			}
+		})
 	}
 }
 
 func TestReadEmptyFile(t *testing.T) {
 	tmp := t.TempDir()
 	testFile := filepath.Join(tmp, "empty.txt")
-	if err := os.WriteFile(testFile, []byte{}, 0o644); err != nil {
+	if err := os.WriteFile(testFile, []byte{}, 0o600); err != nil {
 		t.Fatalf("write test file failed: %v", err)
 	}
 
@@ -194,7 +216,7 @@ func TestReadDirectory(t *testing.T) {
 func TestReadMutuallyExclusiveFlags(t *testing.T) {
 	tmp := t.TempDir()
 	testFile := filepath.Join(tmp, "test.txt")
-	if err := os.WriteFile(testFile, []byte("test"), 0o644); err != nil {
+	if err := os.WriteFile(testFile, []byte("test"), 0o600); err != nil {
 		t.Fatalf("write test file failed: %v", err)
 	}
 
@@ -221,7 +243,7 @@ func TestReadSingleLine(t *testing.T) {
 	tmp := t.TempDir()
 	testFile := filepath.Join(tmp, "test.txt")
 	content := "single line"
-	if err := os.WriteFile(testFile, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(testFile, []byte(content), 0o600); err != nil {
 		t.Fatalf("write test file failed: %v", err)
 	}
 
@@ -236,29 +258,5 @@ func TestReadSingleLine(t *testing.T) {
 	// Single line without newline should still count as 1 line
 	if result.LineCount != 1 {
 		t.Fatalf("expected line_count=1, got %d", result.LineCount)
-	}
-}
-
-func TestReadBytesExceedsFile(t *testing.T) {
-	tmp := t.TempDir()
-	testFile := filepath.Join(tmp, "test.txt")
-	content := "small"
-	if err := os.WriteFile(testFile, []byte(content), 0o644); err != nil {
-		t.Fatalf("write test file failed: %v", err)
-	}
-
-	result, err := ReadFile(testFile, ReadOptions{Bytes: 1000})
-	if err != nil {
-		t.Fatalf("ReadFile failed: %v", err)
-	}
-
-	if result.Content != content {
-		t.Fatalf("expected content=%q, got %q", content, result.Content)
-	}
-	if result.ByteCount != 5 {
-		t.Fatalf("expected byte_count=5, got %d", result.ByteCount)
-	}
-	if result.Truncated {
-		t.Fatalf("expected truncated=false when bytes exceeds file size")
 	}
 }

@@ -12,10 +12,10 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 )
 
 type Config struct {
@@ -56,16 +56,19 @@ func New(ctx context.Context, cfg Config) (*Client, error) {
 	endpoint := strings.TrimSpace(cfg.Endpoint)
 	if endpoint != `` {
 		endpoint = ensureEndpoint(endpoint, cfg.UseSSL)
-		resolver := aws.EndpointResolverWithOptionsFunc(func(service, _ string, _ ...interface{}) (aws.Endpoint, error) {
+		// nolint:staticcheck SA1019 - deprecated but needed for S3-compatible services
+		customEndpoint := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
 			if service == s3.ServiceID {
 				return aws.Endpoint{
 					URL:               endpoint,
 					HostnameImmutable: true,
+					Source:            aws.EndpointSourceCustom,
 				}, nil
 			}
 			return aws.Endpoint{}, &aws.EndpointNotFoundError{}
 		})
-		awsCfgOpts = append(awsCfgOpts, config.WithEndpointResolverWithOptions(resolver))
+		// nolint:staticcheck SA1019 - deprecated but needed for S3-compatible services
+		awsCfgOpts = append(awsCfgOpts, config.WithEndpointResolverWithOptions(customEndpoint))
 		cfg.Endpoint = endpoint
 	}
 
@@ -206,6 +209,10 @@ func (c *Client) ListObjects(ctx context.Context, prefix string, limit int) ([]O
 	}
 
 	if limit > 0 {
+		// MaxKeys is an int32, cap at the maximum safe value
+		if limit > 2147483647 {
+			limit = 2147483647
+		}
 		input.MaxKeys = aws.Int32(int32(limit))
 	}
 

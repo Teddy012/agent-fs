@@ -10,7 +10,7 @@ func TestGetInfoForFile(t *testing.T) {
 	tmp := t.TempDir()
 
 	testFile := filepath.Join(tmp, "test.txt")
-	if err := os.WriteFile(testFile, []byte("hello world"), 0o644); err != nil {
+	if err := os.WriteFile(testFile, []byte("hello world"), 0o600); err != nil {
 		t.Fatalf("write test file failed: %v", err)
 	}
 
@@ -25,8 +25,8 @@ func TestGetInfoForFile(t *testing.T) {
 	if fileInfo.SizeBytes != 11 {
 		t.Fatalf("expected size=11, got %d", fileInfo.SizeBytes)
 	}
-	if fileInfo.Mode != "0644" {
-		t.Fatalf("expected mode=0644, got %s", fileInfo.Mode)
+	if fileInfo.Mode != "0600" {
+		t.Fatalf("expected mode=0600, got %s", fileInfo.Mode)
 	}
 	if fileInfo.Name != "test.txt" {
 		t.Fatalf("expected name=test.txt, got %s", fileInfo.Name)
@@ -49,7 +49,7 @@ func TestGetInfoForDirectory(t *testing.T) {
 
 	// Create some test files
 	file1 := filepath.Join(testDir, "file1.txt")
-	if err := os.WriteFile(file1, []byte("content1"), 0o644); err != nil {
+	if err := os.WriteFile(file1, []byte("content1"), 0o600); err != nil {
 		t.Fatalf("write file1 failed: %v", err)
 	}
 	file2 := filepath.Join(testDir, "file2.txt")
@@ -129,7 +129,7 @@ func TestGetInfoForNestedDirectory(t *testing.T) {
 	}
 
 	childFile := filepath.Join(childDir, "nested.txt")
-	if err := os.WriteFile(childFile, []byte("nested content"), 0o644); err != nil {
+	if err := os.WriteFile(childFile, []byte("nested content"), 0o600); err != nil {
 		t.Fatalf("write nested file failed: %v", err)
 	}
 

@@ -60,18 +60,18 @@ type ListResult struct {
 }
 
 type URLRequest struct {
-	RemoteKey   string
-	Expiration  int64  // Expiration duration in seconds
-	PublicOnly  bool   // If true, return public URL instead of presigned URL
+	RemoteKey  string
+	Expiration int64 // Expiration duration in seconds
+	PublicOnly bool  // If true, return public URL instead of presigned URL
 }
 
 type URLResult struct {
-	Provider     string `json:"provider"`
-	RemoteKey    string `json:"remote_key"`
-	URL          string `json:"url"`
-	ExpiresIn    int64  `json:"expires_in_seconds,omitempty"`
-	ExpiresAt    string `json:"expires_at,omitempty"`
-	IsPresigned  bool   `json:"is_presigned"`
+	Provider    string `json:"provider"`
+	RemoteKey   string `json:"remote_key"`
+	URL         string `json:"url"`
+	ExpiresIn   int64  `json:"expires_in_seconds,omitempty"`
+	ExpiresAt   string `json:"expires_at,omitempty"`
+	IsPresigned bool   `json:"is_presigned"`
 }
 
 type Provider interface {

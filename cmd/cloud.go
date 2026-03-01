@@ -26,8 +26,8 @@ var (
 
 	cloudListLimit int
 
-	cloudURLExpires  int64
-	cloudURLPublic   bool
+	cloudURLExpires int64
+	cloudURLPublic  bool
 )
 
 var cloudCmd = &cobra.Command{
@@ -177,7 +177,7 @@ func runCloudDownload(remoteKeyArg, localPathArg string) error {
 
 	targetPath := localPathArg
 	var (
-		finalPath = localPathArg
+		finalPath string
 		cleanup   = func() {}
 	)
 
@@ -399,11 +399,11 @@ func runCloudURL(remoteKeyArg string) error {
 
 	return output.PrintSuccess(`cloud_url`, map[string]any{
 		"provider":     result.Provider,
-		"remote_key":    result.RemoteKey,
-		"url":           result.URL,
-		"expires_in":    result.ExpiresIn,
-		"expires_at":    result.ExpiresAt,
-		"is_presigned":  result.IsPresigned,
+		"remote_key":   result.RemoteKey,
+		"url":          result.URL,
+		"expires_in":   result.ExpiresIn,
+		"expires_at":   result.ExpiresAt,
+		"is_presigned": result.IsPresigned,
 	})
 }
 

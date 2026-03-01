@@ -10,7 +10,7 @@ import (
 func TestZipAndUnzip(t *testing.T) {
 	srcDir := t.TempDir()
 	srcFile := filepath.Join(srcDir, `a.txt`)
-	if err := os.WriteFile(srcFile, []byte(`hello`), 0o644); err != nil {
+	if err := os.WriteFile(srcFile, []byte(`hello`), 0o600); err != nil {
 		t.Fatalf("write source file failed: %v", err)
 	}
 

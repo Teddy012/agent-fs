@@ -10,6 +10,11 @@ import (
 	"github.com/geekjourneyx/agent-fs/pkg/apperr"
 )
 
+const (
+	// MaxDecompressedSize is the maximum allowed size for decompressed files (1GB)
+	MaxDecompressedSize uint64 = 1 << 30
+)
+
 func Zip(sourcePath, outputZip string) (int64, error) {
 	sourceInfo, err := os.Stat(sourcePath)
 	if err != nil {
@@ -127,17 +132,28 @@ func Unzip(zipPath, destDir string) (int, int64, error) {
 			return 0, 0, apperr.Wrap(`local_unzip`, apperr.CodeArchive, `failed to read zip entry`, openErr)
 		}
 
+		// Check uncompressed size to prevent decompression bomb attacks
+		if f.UncompressedSize64 > MaxDecompressedSize {
+			src.Close()
+			return 0, 0, apperr.New(`local_unzip`, apperr.CodeArchive, `decompressed file exceeds maximum allowed size`)
+		}
+
 		dst, createErr := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, f.Mode())
 		if createErr != nil {
 			src.Close()
 			return 0, 0, apperr.Wrap(`local_unzip`, apperr.CodeArchive, `failed to create destination file`, createErr)
 		}
 
-		n, copyErr := io.Copy(dst, src)
+		// Use LimitedReader to prevent decompression bomb attacks
+		limitedSrc := &io.LimitedReader{R: src, N: int64(MaxDecompressedSize)}
+		n, copyErr := io.Copy(dst, limitedSrc)
 		closeErr := dst.Close()
 		srcCloseErr := src.Close()
 		if copyErr != nil {
 			return 0, 0, apperr.Wrap(`local_unzip`, apperr.CodeArchive, `failed to extract zip entry`, copyErr)
+		}
+		if limitedSrc.N <= 0 {
+			return 0, 0, apperr.New(`local_unzip`, apperr.CodeArchive, `decompressed file exceeded maximum allowed size`)
 		}
 		if closeErr != nil {
 			return 0, 0, apperr.Wrap(`local_unzip`, apperr.CodeArchive, `failed to finalize destination file`, closeErr)

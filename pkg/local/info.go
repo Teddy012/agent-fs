@@ -10,13 +10,13 @@ import (
 )
 
 type FileInfo struct {
-	Name         string    `json:"name"`
-	Path         string    `json:"path"`
-	Type         string    `json:"type"`         // "file" or "directory"
-	SizeBytes    int64     `json:"size_bytes"`
-	Mode         string    `json:"mode"`         // Unix permissions in octal
-	ModifiedTime string    `json:"modified_time"` // RFC3339 format
-	IsDir        bool      `json:"is_dir"`
+	Name         string `json:"name"`
+	Path         string `json:"path"`
+	Type         string `json:"type"` // "file" or "directory"
+	SizeBytes    int64  `json:"size_bytes"`
+	Mode         string `json:"mode"`          // Unix permissions in octal
+	ModifiedTime string `json:"modified_time"` // RFC3339 format
+	IsDir        bool   `json:"is_dir"`
 }
 
 type DirectoryInfo struct {

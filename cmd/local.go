@@ -12,12 +12,12 @@ import (
 )
 
 var (
-	localZipOut        string
-	localUnzipTo       string
-	localInfoDetails   bool
-	localReadHead      int64
-	localReadTail      int64
-	localReadBytes     int64
+	localZipOut      string
+	localUnzipTo     string
+	localInfoDetails bool
+	localReadHead    int64
+	localReadTail    int64
+	localReadBytes   int64
 )
 
 var localCmd = &cobra.Command{
@@ -148,11 +148,11 @@ func runLocalInfo(pathArg string) error {
 	// For directories with details, return directory info
 	if fileInfo.IsDir && localInfoDetails {
 		return output.PrintSuccess(`local_info`, map[string]any{
-			"path":         dirInfo.Path,
-			"type":         "directory",
-			"file_count":   dirInfo.FileCount,
-			"total_bytes":  dirInfo.TotalBytes,
-			"mode":         dirInfo.Mode,
+			"path":          dirInfo.Path,
+			"type":          "directory",
+			"file_count":    dirInfo.FileCount,
+			"total_bytes":   dirInfo.TotalBytes,
+			"mode":          dirInfo.Mode,
 			"modified_time": dirInfo.ModifiedTime,
 		})
 	}
