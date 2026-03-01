@@ -6,10 +6,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/geekjourneyx/agent-fs/pkg/apperr"
-	"github.com/geekjourneyx/agent-fs/pkg/output"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/geekjourneyx/agent-fs/pkg/apperr"
+	"github.com/geekjourneyx/agent-fs/pkg/output"
 )
 
 var configGlobal bool

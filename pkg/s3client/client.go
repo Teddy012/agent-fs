@@ -210,10 +210,10 @@ func (c *Client) ListObjects(ctx context.Context, prefix string, limit int) ([]O
 
 	if limit > 0 {
 		// MaxKeys is an int32, cap at the maximum safe value to prevent overflow
-		maxLimit := int64(1<<31 - 1) // max int32
-		if int64(limit) > maxLimit {
-			limit = int(maxLimit)
+		if limit > 1<<31-1 {
+			limit = 1<<31 - 1
 		}
+		//nolint:gosec // G115 - we cap limit above to prevent overflow
 		input.MaxKeys = aws.Int32(int32(limit))
 	}
 
