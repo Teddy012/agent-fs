@@ -56,7 +56,7 @@ func New(ctx context.Context, cfg Config) (*Client, error) {
 	endpoint := strings.TrimSpace(cfg.Endpoint)
 	if endpoint != `` {
 		endpoint = ensureEndpoint(endpoint, cfg.UseSSL)
-		// nolint:staticcheck SA1019 - deprecated but needed for S3-compatible services
+		//nolint:staticcheck // SA1019 - deprecated but needed for S3-compatible services
 		customEndpoint := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
 			if service == s3.ServiceID {
 				return aws.Endpoint{
@@ -67,7 +67,7 @@ func New(ctx context.Context, cfg Config) (*Client, error) {
 			}
 			return aws.Endpoint{}, &aws.EndpointNotFoundError{}
 		})
-		// nolint:staticcheck SA1019 - deprecated but needed for S3-compatible services
+		//nolint:staticcheck // SA1019 - deprecated but needed for S3-compatible services
 		awsCfgOpts = append(awsCfgOpts, config.WithEndpointResolverWithOptions(customEndpoint))
 		cfg.Endpoint = endpoint
 	}
@@ -209,9 +209,10 @@ func (c *Client) ListObjects(ctx context.Context, prefix string, limit int) ([]O
 	}
 
 	if limit > 0 {
-		// MaxKeys is an int32, cap at the maximum safe value
-		if limit > 2147483647 {
-			limit = 2147483647
+		// MaxKeys is an int32, cap at the maximum safe value to prevent overflow
+		maxLimit := int64(1<<31 - 1) // max int32
+		if int64(limit) > maxLimit {
+			limit = int(maxLimit)
 		}
 		input.MaxKeys = aws.Int32(int32(limit))
 	}

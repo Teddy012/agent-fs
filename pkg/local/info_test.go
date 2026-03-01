@@ -53,7 +53,7 @@ func TestGetInfoForDirectory(t *testing.T) {
 		t.Fatalf("write file1 failed: %v", err)
 	}
 	file2 := filepath.Join(testDir, "file2.txt")
-	if err := os.WriteFile(file2, []byte("content2"), 0o644); err != nil {
+	if err := os.WriteFile(file2, []byte("content2"), 0o600); err != nil {
 		t.Fatalf("write file2 failed: %v", err)
 	}
 

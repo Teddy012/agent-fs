@@ -7,6 +7,26 @@ import (
 	"testing"
 )
 
+// testReadResult is a helper to assert common result properties
+func testReadResult(t *testing.T, result ReadResult, content string, lineCount, byteCount int, truncated bool, sliceType string) {
+	t.Helper()
+	if result.Content != content {
+		t.Fatalf("expected content=%q, got %q", content, result.Content)
+	}
+	if result.LineCount != lineCount {
+		t.Fatalf("expected line_count=%d, got %d", lineCount, result.LineCount)
+	}
+	if result.ByteCount != byteCount {
+		t.Fatalf("expected byte_count=%d, got %d", byteCount, result.ByteCount)
+	}
+	if result.Truncated != truncated {
+		t.Fatalf("expected truncated=%v, got %v", truncated, result.Truncated)
+	}
+	if result.SliceType != sliceType {
+		t.Fatalf("expected slice_type=%s, got %s", sliceType, result.SliceType)
+	}
+}
+
 func TestReadFullFile(t *testing.T) {
 	tmp := t.TempDir()
 	testFile := filepath.Join(tmp, "test.txt")
@@ -20,21 +40,7 @@ func TestReadFullFile(t *testing.T) {
 		t.Fatalf("ReadFile failed: %v", err)
 	}
 
-	if result.Content != content {
-		t.Fatalf("expected content=%q, got %q", content, result.Content)
-	}
-	if result.LineCount != 3 {
-		t.Fatalf("expected line_count=3, got %d", result.LineCount)
-	}
-	if result.ByteCount != len(content) {
-		t.Fatalf("expected byte_count=%d, got %d", len(content), result.ByteCount)
-	}
-	if result.Truncated {
-		t.Fatalf("expected truncated=false")
-	}
-	if result.SliceType != "full" {
-		t.Fatalf("expected slice_type=full, got %s", result.SliceType)
-	}
+	testReadResult(t, result, content, 3, len(content), false, "full")
 }
 
 func TestReadHeadLines(t *testing.T) {
@@ -50,16 +56,7 @@ func TestReadHeadLines(t *testing.T) {
 		t.Fatalf("ReadFile failed: %v", err)
 	}
 
-	expected := "line1\nline2\nline3\n"
-	if result.Content != expected {
-		t.Fatalf("expected content=%q, got %q", expected, result.Content)
-	}
-	if result.LineCount != 3 {
-		t.Fatalf("expected line_count=3, got %d", result.LineCount)
-	}
-	if result.SliceType != "head" {
-		t.Fatalf("expected slice_type=head, got %s", result.SliceType)
-	}
+	testReadResult(t, result, "line1\nline2\nline3\n", 3, 18, false, "head")
 }
 
 func TestReadTailLines(t *testing.T) {
@@ -75,19 +72,7 @@ func TestReadTailLines(t *testing.T) {
 		t.Fatalf("ReadFile failed: %v", err)
 	}
 
-	expected := "line4\nline5\n"
-	if result.Content != expected {
-		t.Fatalf("expected content=%q, got %q", expected, result.Content)
-	}
-	if result.LineCount != 2 {
-		t.Fatalf("expected line_count=2, got %d", result.LineCount)
-	}
-	if !result.Truncated {
-		t.Fatalf("expected truncated=true for tail")
-	}
-	if result.SliceType != "tail" {
-		t.Fatalf("expected slice_type=tail, got %s", result.SliceType)
-	}
+	testReadResult(t, result, "line4\nline5\n", 2, 12, true, "tail")
 }
 
 func TestReadBytes(t *testing.T) {
@@ -103,19 +88,7 @@ func TestReadBytes(t *testing.T) {
 		t.Fatalf("ReadFile failed: %v", err)
 	}
 
-	expected := "hello"
-	if result.Content != expected {
-		t.Fatalf("expected content=%q, got %q", expected, result.Content)
-	}
-	if result.ByteCount != 5 {
-		t.Fatalf("expected byte_count=5, got %d", result.ByteCount)
-	}
-	if !result.Truncated {
-		t.Fatalf("expected truncated=true for bytes")
-	}
-	if result.SliceType != "bytes" {
-		t.Fatalf("expected slice_type=bytes, got %s", result.SliceType)
-	}
+	testReadResult(t, result, "hello", 0, 5, true, "bytes")
 }
 
 // TestReadExceedsFile tests that when the read amount exceeds file size,
