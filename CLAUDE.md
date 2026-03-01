@@ -75,8 +75,13 @@ go test ./... -v
 ### 3. 代码格式化
 
 ```bash
+# 确保安装 goimports
+if [ ! -f ~/go/bin/goimports ]; then
+    go install golang.org/x/tools/cmd/goimports@latest
+fi
+
 go fmt ./...
-goimports -w .
+~/go/bin/goimports -local github.com/geekjourneyx/agent-fs -w .
 ```
 
 确保代码格式统一。
@@ -84,8 +89,13 @@ goimports -w .
 ### 4. 静态检查
 
 ```bash
+# 确保安装 golangci-lint
+if [ ! -f ~/go/bin/golangci-lint ]; then
+    go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+fi
+
 go vet ./...
-golangci-lint run
+~/go/bin/golangci-lint run
 ```
 
 修复所有 vet 和 lint 问题。
@@ -206,10 +216,10 @@ Closes #123
 **手动检查**:
 
 ```bash
-# 1. 确认所有检查通过
+# 1. 确保所有检查通过
 go test ./...
 go vet ./...
-golangci-lint run
+~/go/bin/golangci-lint run
 go build -o afs .
 
 # 2. 版本号一致性检查
