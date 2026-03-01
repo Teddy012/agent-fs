@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: Build binaries
+        run: |
+          mkdir -p dist
+
+          VERSION=${GITHUB_REF#refs/tags/}
+          BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          COMMIT=$(git rev-parse --short HEAD)
+
+          GOOS=linux GOARCH=amd64 go build \
+            -ldflags "-X main.Version=${VERSION} -X main.Commit=${COMMIT} -X main.BuildDate=${BUILD_DATE}" \
+            -o dist/afs-linux-amd64 .
+          GOOS=linux GOARCH=arm64 go build \
+            -ldflags "-X main.Version=${VERSION} -X main.Commit=${COMMIT} -X main.BuildDate=${BUILD_DATE}" \
+            -o dist/afs-linux-arm64 .
+
+          GOOS=darwin GOARCH=amd64 go build \
+            -ldflags "-X main.Version=${VERSION} -X main.Commit=${COMMIT} -X main.BuildDate=${BUILD_DATE}" \
+            -o dist/afs-darwin-amd64 .
+          GOOS=darwin GOARCH=arm64 go build \
+            -ldflags "-X main.Version=${VERSION} -X main.Commit=${COMMIT} -X main.BuildDate=${BUILD_DATE}" \
+            -o dist/afs-darwin-arm64 .
+
+          GOOS=windows GOARCH=amd64 go build \
+            -ldflags "-X main.Version=${VERSION} -X main.Commit=${COMMIT} -X main.BuildDate=${BUILD_DATE}" \
+            -o dist/afs-windows-amd64.exe .
+
+          cd dist
+          sha256sum * > SHA256SUMS
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/afs-linux-amd64
+            dist/afs-linux-arm64
+            dist/afs-darwin-amd64
+            dist/afs-darwin-arm64
+            dist/afs-windows-amd64.exe
+            dist/SHA256SUMS
+          draft: false
+          prerelease: false

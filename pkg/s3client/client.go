@@ -1,0 +1,267 @@
+package s3client
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"net/url"
+	"os"
+	"path"
+	"path/filepath"
+	"strings"
+	"time"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
+)
+
+type Config struct {
+	Endpoint         string
+	Region           string
+	Bucket           string
+	AccessKeyID      string
+	SecretAccessKey  string
+	PathPrefix       string
+	CDNHost          string
+	PathStyle        bool
+	UseSSL           bool
+	DisableTLSVerify bool
+}
+
+type Client struct {
+	cfg    Config
+	client *s3.Client
+}
+
+func New(ctx context.Context, cfg Config) (*Client, error) {
+	region := strings.TrimSpace(cfg.Region)
+	if region == `` {
+		region = `auto`
+	}
+
+	creds := credentials.NewStaticCredentialsProvider(
+		strings.TrimSpace(cfg.AccessKeyID),
+		strings.TrimSpace(cfg.SecretAccessKey),
+		``,
+	)
+
+	awsCfgOpts := []func(*config.LoadOptions) error{
+		config.WithRegion(region),
+		config.WithCredentialsProvider(creds),
+	}
+
+	endpoint := strings.TrimSpace(cfg.Endpoint)
+	if endpoint != `` {
+		endpoint = ensureEndpoint(endpoint, cfg.UseSSL)
+		resolver := aws.EndpointResolverWithOptionsFunc(func(service, _ string, _ ...interface{}) (aws.Endpoint, error) {
+			if service == s3.ServiceID {
+				return aws.Endpoint{
+					URL:               endpoint,
+					HostnameImmutable: true,
+				}, nil
+			}
+			return aws.Endpoint{}, &aws.EndpointNotFoundError{}
+		})
+		awsCfgOpts = append(awsCfgOpts, config.WithEndpointResolverWithOptions(resolver))
+		cfg.Endpoint = endpoint
+	}
+
+	awsCfg, err := config.LoadDefaultConfig(ctx, awsCfgOpts...)
+	if err != nil {
+		return nil, err
+	}
+
+	client := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
+		o.UsePathStyle = cfg.PathStyle
+	})
+
+	return &Client{
+		cfg:    cfg,
+		client: client,
+	}, nil
+}
+
+func (c *Client) UploadFile(ctx context.Context, localPath, remoteKey string) (int64, string, string, error) {
+	file, err := os.Open(localPath)
+	if err != nil {
+		return 0, ``, ``, err
+	}
+	defer file.Close()
+
+	stat, err := file.Stat()
+	if err != nil {
+		return 0, ``, ``, err
+	}
+
+	key := buildKey(c.cfg.PathPrefix, remoteKey)
+	input := &s3.PutObjectInput{
+		Bucket:      aws.String(c.cfg.Bucket),
+		Key:         aws.String(key),
+		Body:        file,
+		ContentType: aws.String(contentTypeByName(localPath)),
+	}
+	if _, err := c.client.PutObject(ctx, input); err != nil {
+		return 0, ``, ``, err
+	}
+
+	return stat.Size(), key, c.PublicURL(key), nil
+}
+
+func (c *Client) DownloadFile(ctx context.Context, remoteKey, localPath string) (int64, string, error) {
+	key := buildKey(c.cfg.PathPrefix, remoteKey)
+	output, err := c.client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(c.cfg.Bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return 0, ``, err
+	}
+	defer output.Body.Close()
+
+	if err := os.MkdirAll(filepath.Dir(localPath), 0o755); err != nil {
+		return 0, ``, err
+	}
+
+	target, err := os.Create(localPath)
+	if err != nil {
+		return 0, ``, err
+	}
+	defer target.Close()
+
+	n, err := io.Copy(target, output.Body)
+	if err != nil {
+		return 0, ``, err
+	}
+	return n, key, nil
+}
+
+func (c *Client) PublicURL(key string) string {
+	if host := strings.TrimSpace(c.cfg.CDNHost); host != `` {
+		return strings.TrimRight(host, `/`) + `/` + strings.TrimLeft(key, `/`)
+	}
+
+	if strings.TrimSpace(c.cfg.Endpoint) == `` {
+		region := strings.TrimSpace(c.cfg.Region)
+		if region == `` {
+			region = `us-east-1`
+		}
+		return fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", c.cfg.Bucket, region, key)
+	}
+
+	endpoint := ensureEndpoint(c.cfg.Endpoint, c.cfg.UseSSL)
+	u, err := url.Parse(endpoint)
+	if err != nil {
+		return endpoint + `/` + key
+	}
+
+	scheme := u.Scheme
+	host := u.Host
+	if c.cfg.PathStyle {
+		return fmt.Sprintf("%s://%s/%s/%s", scheme, host, c.cfg.Bucket, key)
+	}
+	return fmt.Sprintf("%s://%s.%s/%s", scheme, c.cfg.Bucket, host, key)
+}
+
+// PresignedURL generates a presigned URL for temporary access to an object.
+// expiration is the duration the URL is valid for (e.g., 15*time.Minute).
+func (c *Client) PresignedURL(ctx context.Context, key string, expiration time.Duration) (string, error) {
+	key = buildKey(c.cfg.PathPrefix, key)
+
+	// Create a presigned client using the v4 signer
+	presignClient := s3.NewPresignClient(c.client)
+
+	presignResult, err := presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(c.cfg.Bucket),
+		Key:    aws.String(key),
+	}, s3.WithPresignExpires(expiration))
+	if err != nil {
+		return "", fmt.Errorf("failed to presign URL: %w", err)
+	}
+
+	return presignResult.URL, nil
+}
+
+// Signer returns the v4 signer for this client (used for presigned URLs)
+func (c *Client) Signer() *v4.Signer {
+	return v4.NewSigner()
+}
+
+type ObjectInfo struct {
+	Key          string
+	SizeBytes    int64
+	LastModified time.Time
+	ETag         string
+}
+
+// ListObjects lists objects in the bucket with optional prefix and limit.
+func (c *Client) ListObjects(ctx context.Context, prefix string, limit int) ([]ObjectInfo, bool, error) {
+	prefix = buildKey(c.cfg.PathPrefix, prefix)
+
+	input := &s3.ListObjectsV2Input{
+		Bucket: aws.String(c.cfg.Bucket),
+		Prefix: aws.String(prefix),
+	}
+
+	if limit > 0 {
+		input.MaxKeys = aws.Int32(int32(limit))
+	}
+
+	output, err := c.client.ListObjectsV2(ctx, input)
+	if err != nil {
+		return nil, false, err
+	}
+
+	objects := make([]ObjectInfo, 0, len(output.Contents))
+	for _, obj := range output.Contents {
+		objects = append(objects, ObjectInfo{
+			Key:          aws.ToString(obj.Key),
+			SizeBytes:    aws.ToInt64(obj.Size),
+			LastModified: *obj.LastModified,
+			ETag:         aws.ToString(obj.ETag),
+		})
+	}
+
+	isTruncated := output.IsTruncated != nil && *output.IsTruncated
+
+	return objects, isTruncated, nil
+}
+
+func buildKey(prefix, key string) string {
+	k := strings.Trim(strings.TrimSpace(key), `/`)
+	p := strings.Trim(strings.TrimSpace(prefix), `/`)
+	if p == `` {
+		return k
+	}
+	if k == `` {
+		return p
+	}
+	return path.Join(p, k)
+}
+
+func ensureEndpoint(endpoint string, useSSL bool) string {
+	ep := strings.TrimSpace(endpoint)
+	if strings.HasPrefix(ep, `http://`) || strings.HasPrefix(ep, `https://`) {
+		return ep
+	}
+	if useSSL {
+		return `https://` + ep
+	}
+	return `http://` + ep
+}
+
+func contentTypeByName(fileName string) string {
+	name := strings.ToLower(fileName)
+	switch {
+	case strings.HasSuffix(name, `.zip`):
+		return `application/zip`
+	case strings.HasSuffix(name, `.json`):
+		return `application/json`
+	case strings.HasSuffix(name, `.txt`), strings.HasSuffix(name, `.log`):
+		return `text/plain; charset=utf-8`
+	default:
+		return `application/octet-stream`
+	}
+}

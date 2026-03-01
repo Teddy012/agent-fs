@@ -1,0 +1,17 @@
+# Binaries
+afs
+afs-*
+*.exe
+*.test
+dist/
+
+# Claude
+.claude/
+
+# IDE
+.DS_Store
+.vscode/
+.idea/
+
+# Test coverage
+coverage.out

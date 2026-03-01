@@ -1,0 +1,33 @@
+linters:
+  enable:
+    - gofmt
+    - goimports
+    - govet
+    - errcheck
+    - staticcheck
+    - unused
+    - gosimple
+    - ineffassign
+    - gocyclo
+    - dupl
+    - misspell
+    - unconvert
+    - prealloc
+    - gosec
+
+linters-settings:
+  gocyclo:
+    min-complexity: 20
+  dupl:
+    threshold: 100
+  govet:
+    enable-all: false
+  errcheck:
+    check-type-assertions: false
+    check-blank: false
+  goimports:
+    local-prefixes: github.com/geekjourneyx/agent-fs
+
+run:
+  timeout: 5m
+  go: "1.24"
