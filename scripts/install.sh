@@ -46,13 +46,13 @@ case "$ARCH" in
         ;;
 esac
 
-# Windows uses .exe extension
+# Construct download URL and binary filename
+DOWNLOAD_FILENAME="${BINARY_NAME}-${OS}-${ARCH}"
 if [ "$OS" = "windows" ]; then
-    BINARY_NAME="${BINARY_NAME}.exe"
+    DOWNLOAD_FILENAME="${DOWNLOAD_FILENAME}.exe"
 fi
 
-# Construct download URL
-DOWNLOAD_URL="https://github.com/${REPO}/releases/${VERSION}/download/${BINARY_NAME}-${OS}-${ARCH}"
+DOWNLOAD_URL="https://github.com/${REPO}/releases/${VERSION}/download/${DOWNLOAD_FILENAME}"
 
 echo -e "${YELLOW}OS: ${OS}${NC}"
 echo -e "${YELLOW}Architecture: ${ARCH}${NC}"
@@ -78,6 +78,7 @@ else
     fi
 fi
 
+# Local binary name (always afs, even on Windows)
 BINARY_PATH="${INSTALL_DIR}/${BINARY_NAME}"
 
 # Download binary
@@ -99,7 +100,7 @@ echo -e "${GREEN}Installation complete!${NC}"
 echo -e "${GREEN}Binary installed to: ${BINARY_PATH}${NC}"
 echo ""
 echo -e "${YELLOW}Verify installation:${NC}"
-echo "  ${BINARY_NAME} --version"
+echo "  ${BINARY_NAME} version"
 echo ""
 echo -e "${YELLOW}Quick start:${NC}"
 echo "  ${BINARY_NAME} local info /path/to/file"
